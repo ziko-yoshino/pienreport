@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ぴえんレポート</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header, main, footer {
+            text-align: center;
+            padding: 10px;
+        }
+        #schedule {
+            margin: auto;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+        .day {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .day:hover {
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+        .column-method {
+            display: none;
+            margin-top: 20px;
+        }
+        textarea {
+            width: calc(100% - 20px);
+            height: 50px;
+            margin-bottom: 10px;
+            padding: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        #emotionChart {
+            width: 80%;
+            margin: 20px auto;
+        }
+        #pieChartContainer {
+            display: none;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ぴえんレポート</h1>
+        <input type="date" id="datePicker">
+    </header>
+    <main>
+        <div id="schedule">
+            <!-- 予定表のスロットはJavaScriptで生成されます -->
+        </div>
+        <div id="column-method" class="column-method">
+            <div id="memo" contenteditable="true"></div>
+            <label for="situation">状況</label>
+            <textarea id="situation" placeholder="状況"></textarea>
+            <label for="feelings">感情</label>
+            <textarea id="feelings" placeholder="感情"></textarea>
+            <label for="thoughts">考え</label>
+            <textarea id="thoughts" placeholder="考え"></textarea>
+            <label for="evidence">考えの根拠</label>
+            <textarea id="evidence" placeholder="考えの根拠"></textarea>
+            <label for="evidence">考えの根拠</label>
+            <textarea id="contraryThoughts" placeholder="考えを否定する別の考え"></textarea>
+            <label for="balancedView">バランスの取れた見方</label>
+            <textarea id="balancedView" placeholder="バランスの取れた見方"></textarea>
+            <button id="analyzeEmotion">感情分析</button>
+            <div id="emotionScore">感情スコア: 未分析</div>
+            <button id="previousDay">&lt;</button>
+<button id="saveMemo">保存</button>
+<button id="showLineChart">ぴえんグラフ</button>
+<!-- 翌日のメモを表示するボタン -->
+<button id="nextDay">&gt;</button>
+        </div>
+        <canvas id="emotionChart"></canvas>
+        <div id="pieChartContainer">
+            <canvas id="pieChart"></canvas>
+        </div>
+    </main>
+    <footer><small>ナースビー</small></footer>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const schedule = document.getElementById('schedule');
+            const datePicker = document.getElementById('datePicker');
+            const columnMethodDiv = document.getElementById('column-method');
+            const situationInput = document.getElementById('situation');
+            const feelingsInput = document.getElementById('feelings');
+            const thoughtsInput = document.getElementById('thoughts');
+            const evidenceInput = document.getElementById('evidence');
+            const contraryThoughtsInput = document.getElementById('contraryThoughts');
+            const balancedViewInput = document.getElementById('balancedView');
+            const emotionChartCanvas = document.getElementById('emotionChart').getContext('2d');
+            const pieChartCanvas = document.getElementById('pieChart').getContext('2d');
+            const pieChartContainer = document.getElementById('pieChartContainer');
+
+            const emotionScores = {
+                '楽しい': 1, '幸せ': 1, '美味しい': 1, '自信がある': 1,
+                '嬉しい': 1,
+                '楽しみ': 1,
+                'よかった': 0.5,
+                '良い': 0.5,
+                '爽やか': 0.5,
+                'スッキリ': 0.5,
+                'どうでもいい': 0,
+                'ぴえん': 0,
+                'ストレス': 0,
+                '大変': 0,
+                'うーん': 0,
+                'きつい': 0,
+                'やだ': 0,
+                '嫌': 0,
+                'アクシデント': -0.5,
+                '集中できない': -0.5,
+                '病棟が怖い': -0.5,
+                '頭が痛い': -0.5,
+                '自信がない': -0.5,
+                'なにもできない': -0.5,
+                '起きれない': -0.5,
+                '頭痛': -0.5,
+                'いじめ': -0.5,
+                '楽しくない': -0.5,
+                '誰にも会いたくない': -0.5,
+                '悲しい': -0.5,
+                'やめたい': -0.5,
+                'しんどい': -0.5,
+                '寂しい': -0.5,
+                '遅刻': -0.5,
+                '無理': -0.5,
+                '虚しい': -0.5,
+                '混乱': -0.5,
+                '嫌悪': -0.5,
+                '後悔': -0.5,
+                '眠れない': -1,
+                'ねむれない': -1,
+                '行けな': -1,
+                'いけな': -1,
+                '死にたい': -1,
+                'しにたい': -1,
+                '楽しめな': -1,
+                'たのしめな': -1,
+                '食べられな': -1,
+                'たべられな': -1,
+                '怖い': -1,
+                'こわい': -1,
+                '考えられない': -1,
+                'かんえられない': -1,
+                '生きてるのがつらい': -1,
+                'いきてるのがつらい': -1,
+                '消えたい': -1,
+                'きえたい': -1,
+                '動けない': -1,
+                'うごけない': -1,
+                '血尿': -1,
+                '涙': -1,
+                '体調': -1,
+                '遅刻': -1,
+                '動悸': -1,
+                'いない': -1,
+                '起きれな': -1,
+                'おきれな': -1,
+                '感情': -1,
+                'いきて': -1,
+                '生きて': -1,
+                '死ぬ': -1,
+                'しぬ': -1,
+                '行': -1,
+                '眠': -1,
+                'ねむ': -1,
+                'いきたく': -1,
+                'ねれない': -1,
+                '発作': -1,
+                'きつい': -0.5,
+                'もういや': -0.5,
+                '吐く': -1,
+                '無': -0.5,
+            };
+
+            datePicker.valueAsDate = new Date(); // 今日の日付をセット
+
+            function loadMemo(date) {
+                return JSON.parse(localStorage.getItem(date)) || {};
+            }
+
+            function saveMemo(date, memo) {
+                localStorage.setItem(date, JSON.stringify(memo));
+            }
+
+            function displayColumnMethod(date, memo) {
+                situationInput.value = memo.situation || '';
+                feelingsInput.value = memo.feelings || '';
+                thoughtsInput.value = memo.thoughts || '';
+                evidenceInput.value = memo.evidence || '';
+                contraryThoughtsInput.value = memo.contraryThoughts || '';
+                balancedViewInput.value = memo.balancedView || '';
+                document.getElementById('emotionScore').textContent = `感情スコア: ${memo.score || '未分析'}`; // 保存された感情スコアを表示
+                document.getElementById('emotionScore').style.color = memo.color || 'black'; // 保存された文字色を設定
+                columnMethodDiv.style.display = 'block';
+            }
+
+            function updateSchedule(date) {
+                schedule.innerHTML = ''; // 予定表をクリア
+                let startDate = new Date(date);
+                startDate.setDate(startDate.getDate() - startDate.getDay()); // 週の最初の日
+
+                for (let i = 0; i < 7; i++) { // 7日間の予定を生成
+                    let currentDay = new Date(startDate);
+                    currentDay.setDate(currentDay.getDate() + i);
+
+                    const dayElement = document.createElement('div');
+                    dayElement.classList.add('day');
+                    dayElement.textContent = `${currentDay.getMonth() + 1}月 ${currentDay.getDate()}日`;
+                    dayElement.dataset.date = currentDay.toISOString().split('T')[0];
+
+                    const memo = loadMemo(dayElement.dataset.date);
+                    if (memo.situation) {
+                        dayElement.textContent += `: ${memo.situation}`;
+                    }
+                    dayElement.style.color = memo.color || 'black'; // 保存された文字色を設定
+
+                    dayElement.addEventListener('click', function() {
+                        datePicker.value = this.dataset.date; // カレンダーの日付をクリックされた日付に設定
+                        const memo = loadMemo(this.dataset.date);
+                        displayColumnMethod(this.dataset.date, memo);
+                    });
+
+                    schedule.appendChild(dayElement);
+                }
+            }
+
+            function analyzeEmotion(memoText) {
+                let score = 0;
+                let words = memoText.split(/\s+|、|。/); // 空白または句読点で分割
+                words.forEach(word => {
+                    word = word.trim();
+                    if (emotionScores.hasOwnProperty(word)) {
+                        score += emotionScores[word];
+                    }
+                });
+                return score;
+            }
+
+            function setColorBasedOnEmotionScore(score) {
+                const textAreas = document.querySelectorAll('#column-method textarea');
+                textAreas.forEach((textArea) => {
+                    let color;
+                    switch (true) {
+                        case score === 1:
+                            color = 'red';
+                            break;
+                        case score === 0.5:
+                            color = 'orange';
+                            break;
+                        case score === 0:
+                            color = 'green';
+                            break;
+                        case score === -0.5:
+                            color = 'blue';
+                            break;
+                        case score === -1:
+                            color = 'purple';
+                            break;
+                        default:
+                            color = 'black'; // デフォルトの色
+                    }
+                    textArea.style.color = color;
+                });
+            }
+
+            function generateLineChart(data) {
+                const dates = data.map(item => item.date);
+                const scores = data.map(item => item.score);
+
+                const emotionLineChart = new Chart(emotionChartCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: '感情スコア',
+                            data: scores,
+                            borderColor: 'blue',
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+
+            document.getElementById('analyzeEmotion').addEventListener('click', function() {
+                const memoText = [
+                    document.getElementById('situation').value,
+                    document.getElementById('feelings').value,
+                    document.getElementById('thoughts').value,
+                    document.getElementById('evidence').value,
+                    document.getElementById('contraryThoughts').value,
+                    document.getElementById('balancedView').value
+                ].join(' ');
+
+                const score = analyzeEmotion(memoText); // メモテキストから感情スコアを計算
+                document.getElementById('emotionScore').textContent = `感情スコア: ${score}`; // 結果を表示
+
+                setColorBasedOnEmotionScore(score); // 追加された関数を呼び出して、スコアに基づいて色を設定
+            });
+
+            document.getElementById('saveMemo').addEventListener('click', function() {
+                const selectedDate = datePicker.value;
+                if (!selectedDate) {
+                    alert('日付を選択してください。');
+                    return;
+                }
+                const memo = {
+                    situation: situationInput.value,
+                    feelings: feelingsInput.value,
+                    thoughts: thoughtsInput.value,
+                    evidence: evidenceInput.value,
+                    contraryThoughts: contraryThoughtsInput.value,
+                    balancedView: balancedViewInput.value,
+                    score: document.getElementById('emotionScore').textContent.split(': ')[1], // 感情スコアを保存
+                    color: document.getElementById('emotionScore').style.color // 文字色を保存
+                };
+                saveMemo(selectedDate, memo);
+                updateSchedule(datePicker.value);
+                alert('メモを保存しました。');
+            });
+
+            document.getElementById('showLineChart').addEventListener('click', function() {
+                const data = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const date = localStorage.key(i);
+                    const memo = JSON.parse(localStorage.getItem(date));
+                    if (memo.score) {
+                        data.push({ date: date, score: parseFloat(memo.score) });
+                    }
+                }
+                generateLineChart(data);
+                pieChartContainer.style.display = 'none';
+            });
+
+            datePicker.addEventListener('change', function() {
+                updateSchedule(this.value);
+            });
+            
+            document.getElementById('previousDay').addEventListener('click', function() {
+    const currentDate = new Date(datePicker.value);
+    currentDate.setDate(currentDate.getDate() - 1);
+    datePicker.value = currentDate.toISOString().split('T')[0];
+    const memo = loadMemo(datePicker.value); // 前日のメモを読み込む
+    displayColumnMethod(datePicker.value, memo); // 前日のメモを表示
+});
+
+document.getElementById('nextDay').addEventListener('click', function() {
+    const currentDate = new Date(datePicker.value);
+    currentDate.setDate(currentDate.getDate() + 1);
+    datePicker.value = currentDate.toISOString().split('T')[0];
+    const memo = loadMemo(datePicker.value); // 翌日のメモを読み込む
+    displayColumnMethod(datePicker.value, memo); // 翌日のメモを表示
+});
+
+var ctx = document.getElementById('emotionChart').getContext('2d');
+var emotionChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ["日付1", "日付2", "日付3"], // ここに日付を入れる
+        datasets: [{
+            label: '感情スコア',
+            data: [1, -0.5, 0], // ここに感情スコアを入れる
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+        }]
+    },
+    options: {}
+});
+
+
+
+            // 初期表示用に今週の予定を表示
+            updateSchedule(datePicker.value);
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
+

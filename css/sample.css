@@ -1,0 +1,78 @@
+body {
+    margin: 0;
+    padding: 0;
+    text-align: left; /* テキストを左寄せにする */
+    font-size: 16px; /* 調整可能 */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    text-align: left; /* テキストを左寄せにする */
+    font-size: 16px; /* 調整可能 */
+}
+
+header, footer {
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+    text-align: center;
+}
+
+main {
+    padding: 10px;
+}
+
+textarea {
+    width: calc(100% - 20px); /* ウィンドウサイズに応じて調整 */
+    height: 100px; /* 適宜調整 */
+    margin-bottom: 10px; /* 項目間のスペース */
+    font-size: 14px; /* 調整可能 */
+    box-sizing: border-box; /* パディングとボーダーを幅と高さに含める */
+}
+
+/* ラベルを左寄りに表示 */
+label {
+    display: block; /* ブロックレベル要素としてラベルを表示し、それぞれのテキストエリアの上に配置 */
+    margin-left: 0; /* 左側に余白を設けない */
+    text-align: left; /* テキストを左寄せに */
+    font-size: 16px; /* ラベルのフォントサイズを指定 */
+    color: #000; /* ラベルのテキストカラーを指定 */
+    margin-top: 20px; /* 上の要素からの距離 */
+    margin-bottom: 5px; /* 下のテキストエリアまでの距離 */
+}
+
+
+ul {
+    padding: 0;
+    display: flex;
+    justify-content: space-around;
+    list-style-type: none;
+}
+
+li {
+    padding: 10px;
+    border: 1px solid #666;
+    background-color: #FFF;
+    cursor: pointer;
+}
+
+li:hover {
+    background: #0066CC;
+    color: #fff;
+}
+
+@media (max-width: 600px) {
+    body {
+        font-size: 14px;
+    }
+
+    textarea {
+        height: 80px; /* より小さなデバイスで高さを減らす */
+    }
+
+    li {
+        padding: 5px; /* 小さなデバイスでパディングを減らす */
+    }
+}
+
+/* その他必要なスタイル */
